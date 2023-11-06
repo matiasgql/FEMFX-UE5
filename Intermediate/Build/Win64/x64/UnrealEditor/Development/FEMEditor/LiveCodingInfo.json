@@ -1,0 +1,19 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.FEMEditor.cpp.obj": [
+			"FEMActorFactory.gen.cpp.obj",
+			"FEMEditor.init.gen.cpp.obj",
+			"FEMFactory.gen.cpp.obj",
+			"FEMMeshFactory.gen.cpp.obj",
+			"FEMTetMeshParametersFactory.gen.cpp.obj",
+			"FEMActions.cpp.obj",
+			"FEMActorFactory.cpp.obj",
+			"FEMEditor.cpp.obj",
+			"FEMFactory.cpp.obj",
+			"FEMFileImportFactory.cpp.obj",
+			"FEMMeshFactory.cpp.obj",
+			"FEMTetMeshParametersFactory.cpp.obj"
+		]
+	}
+}
