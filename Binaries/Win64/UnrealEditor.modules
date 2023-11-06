@@ -1,8 +1,0 @@
-{
-	"BuildId": "27405482",
-	"Modules": 
-	{
-		"FEM": "UnrealEditor-FEM.dll",
-		"FEMEditor": "UnrealEditor-FEMEditor.dll"
-	}
-}
