@@ -360,6 +360,7 @@ UFEMMeshFactory::UFEMMeshFactory(const FObjectInitializer& ObjectInitializer)
 
 UObject* UFEMMeshFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
+	UE_LOG(LogTemp, Warning, TEXT("FEMMeshFactory::FactoryCreateNew"));
 	TSharedPtr<SWindow> ParentWindow;
 	// Check if the main frame is loaded.  When using the old main frame it may not be.
 	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))

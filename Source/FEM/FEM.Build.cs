@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-using System;
 using System.IO;
-using System.Diagnostics;
 using UnrealBuildTool;
 
 public class FEM : ModuleRules
@@ -10,49 +8,31 @@ public class FEM : ModuleRules
 	public FEM(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
-		//Definitions.Add("NOMINMAX");
 		
-		string PluginPath = Path.Combine(ModuleDirectory, "../../../");
-		string FEMLibDir = Path.Combine(PluginPath, "FEM/ThirdParty/FEMLib/FEMFXBeta/amd_femfx/");
-		//string MetisDir = Path.Combine(PluginPath, "FEM/ThirdParty/FEMLib/FEMFXBeta/external/metis-5.1.0/");
+		string PluginPath = Path.Combine(ModuleDirectory, "../../");
+		string FEMLibDir = PluginPath + "/ThirdParty/FEMLib/FEMFXBeta/amd_femfx/";//Path.Combine(PluginPath, "/ThirdParty/FEMLib/FEMFXBeta/amd_femfx/");
 		
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
 				FEMLibDir + "inc/",
 				FEMLibDir + "inc/Vectormath/",
-				//MetisDir + "include/",
-				//MetisDir + "libmetis/",
-				//MetisDir + "GKlib/",
-				//MetisDir + "programs/",
-				PluginPath+"/FEM/Source/FEM/Classes"
+				PluginPath+"/Source/FEM/Classes"
 			}
 		);
 		
 		string FEMLibPath = FEMLibDir + "lib/";
-		//PublicLibraryPaths.Add(FEMLibPath);
 		PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "AMD_FEMFX.lib"));
 		PublicAdditionalLibraries.Add(Path.Combine(FEMLibPath, "sample_task_system.lib"));
-		//PublicAdditionalLibraries.Add("tbb.lib");
-		
-		//PublicLibraryPaths.Add(MetisDir + "libmetis/Release");
-		//PublicAdditionalLibraries.Add("metis.lib");
 
 		PublicIncludePaths.AddRange(
 			new string[] {
-				PluginPath+"/FEM/Source/FEM/Classes"
+				PluginPath+"/Source/FEM/Classes"
 			});
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				PluginPath+"/FEM/Source/FEM/Private",
+				PluginPath+"/Source/FEM/Private",
 			});
-
-		//AddEngineThirdPartyPrivateStaticDependencies(Target, "FEMLib");
-		//
-		//RuntimeDependencies.Add(new RuntimeDependency(TBBDir + "tbb.lib"));
-		//RuntimeDependencies.Add(new RuntimeDependency(FEMLibPath + "AMD_FEMFX.lib"));
-		//RuntimeDependencies.Add(new RuntimeDependency(MetisDir + "libmetis/Release/metis.lib"));
 
 		if (Target.bBuildEditor)
 		{

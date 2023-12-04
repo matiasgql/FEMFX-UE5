@@ -16,7 +16,7 @@
 AFEMActor::AFEMActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	SetActorTickEnabled(true);
+	AActor::SetActorTickEnabled(true);
 
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -76,9 +76,6 @@ void AFEMActor::Destroyed()
 
 void AFEMActor::PreFEMLoad_Implementation()
 {
-	FAttachmentTransformRules rules(EAttachmentRule::KeepWorld, false);
-	FTransform trans = FTransform::Identity;
-
 	MeshComponents = K2_GetComponentsByClass(UFEMFXMeshComponent::StaticClass());
 
 	TArray<AActor*> ActorsFound;
@@ -128,7 +125,7 @@ void AFEMActor::FEMLoad_Implementation()
 
 void AFEMActor::PostFEMLoad_Implementation()
 {
-	FTransform trans = FTransform::Identity;
+	UE_LOG(LogTemp, Warning, TEXT("PostFEMLoad_Implementation executed"));
 
 	for (int i = 0; i < MeshComponents.Num(); ++i)
 	{
@@ -146,7 +143,7 @@ void AFEMActor::PostFEMLoad_Implementation()
 				UE_LOG(FEMLog, Error, TEXT("No Valid Scene."));
 			}
 
-			comp->SetWorldTransform(trans);
+			comp->SetWorldTransform(FTransform::Identity);
 
 			comp->UpdateSceneProxy();
 
@@ -224,11 +221,9 @@ void AFEMActor::CreateIdMapping()
 
 UFEMFXMeshComponent* AFEMActor::GetComponentByName(FString name)
 {
-	UFEMFXMeshComponent* comp = nullptr;
-
 	for (auto it = MeshComponents.CreateIterator(); it; it++)
 	{
-		comp = Cast<UFEMFXMeshComponent>(*it);
+		UFEMFXMeshComponent* comp = Cast<UFEMFXMeshComponent>(*it);
 		if (comp->FEMMesh->GetComponentResource().Name == name)
 			return comp;
 	}
@@ -380,6 +375,7 @@ void AFEMActor::SetupConstraints_Implementation()
 					constraint.planeNormal2 = vec;
                     constraint.nonNeg2 = nonNeg;  // TODO: this should be independent for each axis
 					break;
+				default: ; //do nothing.
 				}
 			}
 

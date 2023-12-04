@@ -11,7 +11,7 @@
 #include "FEMFXMeshComponent.h"
 #include <vector>
 #include "FEMCommon.h"
-#include "PreProcessedMesh.h"
+#include "FEMPreProcessedMesh.h"
 //ThirdParty/FEM/FEMFXBeta/amd_femfx/inc/
 #include "FEMFXScene.generated.h"
 

@@ -4,21 +4,12 @@
 //
 //---------------------------------------------------------------------------------------
 
-using System;
-using System.IO;
 using UnrealBuildTool;
 
 public class FEMEditor : ModuleRules
 {
 	public FEMEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
-
-		//DynamicallyLoadedModuleNames.AddRange(
-		//	new string[] {
-		//		"AssetTools"
-		//	}
-		//);
-
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"FEM",

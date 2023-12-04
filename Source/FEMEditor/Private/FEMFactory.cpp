@@ -3,6 +3,7 @@
 // Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 //---------------------------------------------------------------------------------------
+// ReSharper disable CppExpressionWithoutSideEffects
 #include "FEMFactory.h"
 #include "FEMFileImportFactory.h"
 
@@ -27,6 +28,8 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 
 #include "Developer/AssetTools/Public/AssetTypeCategories.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/JsonSerializer.h"
 
 UFEMFactory::UFEMFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -96,7 +99,6 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 	Resource->Version = JsonObject->GetStringField("Version");
 
 	TUniquePtr<FEMFileImportFactory> fileFactory = FEMFileImportFactory::GetFactory(Resource->Version);
-
 	if (fileFactory == nullptr)
 	{
 		Warn->Logf(ELogVerbosity::Error, TEXT("Failed to load file '%s'"), *Filename);
@@ -133,7 +135,7 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 			if (it->TetIds.Num() > 0)
 				meshComponent->MeshParameters.Add(it->Name);
 
-			UPackage* package = PackageTools::LoadPackage(*it->Name);
+			UPackage* package = UPackageTools::LoadPackage(*it->Name);
 
 			UFEMFXTetMeshParameters* material = Cast<UFEMFXTetMeshParameters>(StaticLoadObject(UFEMFXTetMeshParameters::StaticClass(), package, *it->Name));
 			if (!material)
@@ -143,7 +145,7 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 				package = CreatePackage(*PackageName);
 				EObjectFlags objectFlags = RF_Public | RF_Standalone;
 
-				material = Cast<UFEMFXTetMeshParameters>(factory->FactoryCreateNew(UFEMFXTetMeshParameters::StaticClass(), package, *it->Name, objectFlags, NULL, Warn, NAME_None));
+				material = Cast<UFEMFXTetMeshParameters>(factory->FactoryCreateNew(UFEMFXTetMeshParameters::StaticClass(), package, *it->Name, objectFlags, nullptr, Warn, NAME_None));
 				FAssetRegistryModule::AssetCreated(material);
 				material->MarkPackageDirty();
 			}
@@ -162,7 +164,7 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 
 		for (auto it = Resource->ComponentResources[i].FBXFiles.CreateIterator(); it; it++)
 		{
-			UPackage* package = PackageTools::LoadPackage(*it);
+			UPackage* package = UPackageTools::LoadPackage(*it);
 
 			UStaticMesh* Mesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), package, **it));
 			if (!Mesh)
@@ -180,7 +182,6 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 				meshComponent->staticMeshes.Add(Mesh);
 			}
 		}
-
 
 		/** Create the UFEMMesh f */
 		// Only need to do this here because I need a valid TetMeshBuffer as well as BvHierarchy.
@@ -244,8 +245,10 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 
 		Cast<AFEMActor>(RootActorContainer)->MeshComponents.Add(meshComponent);
 	}
-
-	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(InParent->GetFName(), RootActorContainer, nullptr);
+	FKismetEditorUtilities::FCreateBlueprintFromActorParams Params = FKismetEditorUtilities::FCreateBlueprintFromActorParams();
+	Params.bKeepMobility = true;
+	Params.bReplaceActor = false;
+	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(InParent->GetFName(), RootActorContainer, Cast<AFEMActor>(RootActorContainer), Params);
 	
 	if (Blueprint)
 	{
@@ -253,7 +256,7 @@ UObject* UFEMFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 		Blueprint->MarkPackageDirty();
 	}
 	GWorld->EditorDestroyActor(RootActorContainer, true);
-
+	
 	return Blueprint;
 
 }

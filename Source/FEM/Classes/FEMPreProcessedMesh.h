@@ -8,12 +8,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "FEMCommon.h"
 #include "FEMMeshTypes.h"
 
-#include "PreProcessedMesh.generated.h"
+#include "FEMPreProcessedMesh.generated.h"
 
-struct PreProcessedMesh
+struct FEMPreProcessedMesh
 {
 	TArray<FVector> Vertices;
 	TArray<FVector> Normals;
@@ -40,11 +39,11 @@ struct PreProcessedMesh
         MaxTriIndices = 0;
 	}
 
-	friend FArchive& operator<<(FArchive& Ar, PreProcessedMesh& M);
+	friend FArchive& operator<<(FArchive& Ar, FEMPreProcessedMesh& M);
 };
 
 UCLASS()
-class APreProcessedMeshHelper : public AActor
+class AFEMPreProcessedMeshHelper : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -53,10 +52,10 @@ public:
 
 	bool IsProcessed(FString name);
 
-	PreProcessedMesh & AddPreProcessedMesh(FString name, PreProcessedMesh mesh);
+	FEMPreProcessedMesh & AddPreProcessedMesh(FString name, FEMPreProcessedMesh mesh);
 
-	PreProcessedMesh& GetPreProcessedMesh(FString name);
+	FEMPreProcessedMesh& GetPreProcessedMesh(FString name);
 
 private:
-	TMap<FString, PreProcessedMesh> FEMPreProcessedMeshes;
+	TMap<FString, FEMPreProcessedMesh> FEMPreProcessedMeshes;
 };

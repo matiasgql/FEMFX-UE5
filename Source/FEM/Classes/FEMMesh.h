@@ -10,7 +10,6 @@
 #include "FEMMeshTypes.h"
 #include "FEMCommon.h"
 #include "RenderTetAssignment.h"
-#include "PreProcessedMesh.h"
 #include "FEMResource.h"
 #include <vector>
 
@@ -28,11 +27,11 @@ class FEM_API UFEMTetMesh : public UObject
 public:
 
 	FORCEINLINE TArray<FVector3f>                          GetVertexPositions()           const { return FEMMeshVertexPositions; }
-	FORCEINLINE TArray<FFEMFXMeshTetRotation>            GetVertexRotations()           const { return FEMMeshVertexRotations; }
-	FORCEINLINE TArray<FFEMFXMeshTetVertexIds>           GetTetVertexIds()              const { return FEMMeshTetVertexIds; }
-	FORCEINLINE TArray<float>                            GetDeformations()              const { return FEMMeshDeformations; }
-	FORCEINLINE int32								     GetInteriorMeshSection()       const { return FEMMeshInteriorMeshSection; }
-	FORCEINLINE TArray<FFEMFXTetFractureNewRenderFaces>& GetTetFractureNewRenderFaces() { return FEMMeshTetFractureNewRenderFaces; }
+	FORCEINLINE TArray<FFEMFXMeshTetRotation>              GetVertexRotations()           const { return FEMMeshVertexRotations; }
+	FORCEINLINE TArray<FFEMFXMeshTetVertexIds>             GetTetVertexIds()              const { return FEMMeshTetVertexIds; }
+	FORCEINLINE TArray<float>                              GetDeformations()              const { return FEMMeshDeformations; }
+	FORCEINLINE int32								       GetInteriorMeshSection()       const { return FEMMeshInteriorMeshSection; }
+	FORCEINLINE TArray<FFEMFXTetFractureNewRenderFaces>&   GetTetFractureNewRenderFaces() { return FEMMeshTetFractureNewRenderFaces; }
     FORCEINLINE TArray<FTetFractureShardVerticesToUpdate>& GetTetFractureShardVerticesToUpdate() { return TetFractureShardVerticesToUpdate; }
 
 	void InitTetFractureNewRenderFaces(int num) { FEMMeshTetFractureNewRenderFaces.AddDefaulted(num); }
@@ -77,7 +76,7 @@ public:
 
 	GENERATED_UCLASS_BODY()
 
-	FORCEINLINE int32                     GetNumSections()  const { return FEMFXMeshSections.Num(); }
+	FORCEINLINE int32                      GetNumSections()  const { return FEMFXMeshSections.Num(); }
 	FORCEINLINE TArray<FFEMFXMeshSection>& GetMeshSections() { return FEMFXMeshSections; }
 
 private:
@@ -217,7 +216,3 @@ private:
 	UPROPERTY()
 	TArray<FShardVertTetAssignments> ShardVertTetAssignmentsBuffer;
 };
-
-
-
-

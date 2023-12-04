@@ -34,16 +34,13 @@ TUniquePtr<FEMFileImportFactory> FEMFileImportFactory::GetFactory(FString versio
 	{
 	case (0):
 		return TUniquePtr<FEMv1_0>(new FEMv1_0());
-	default: 
+	default:
 		return TUniquePtr<FEMFileImportFactory>(new FEMFileImportFactory());
 	};
 
 	return nullptr;
 }
 
-void FEMFileImportFactory::ImportFEMFile(const FEMFileImportInputs* inputs)
-{
-}
 
 void FEMv1_0::ImportFEMFile(const FEMFileImportInputs* inputStruct)
 {
@@ -228,12 +225,13 @@ void FEMv1_0::ImportFEMFile(const FEMFileImportInputs* inputStruct)
 
 			component.MeshSections.Add(section);
 		}
-
+		
 		inputStruct->Resource->AddComponent(component);
+
 	}
 	// Setup The Component Resource
 	inputStruct->Resource->ProcessResource();
-
+	
 	// Read Rigid Body values out from file
 	TArray<TSharedPtr<FJsonValue>> JsonRigidBodyArray = inputStruct->JsonObject->GetArrayField("RigidBodies");
 	for (auto it = JsonRigidBodyArray.CreateIterator(); it; it++)
@@ -346,9 +344,6 @@ void FEMv1_0::ImportFEMFile(const FEMFileImportInputs* inputStruct)
 
 			pc.Planes.Add(plane);
 		}
-
 		inputStruct->Resource->ActorResource.PlaneConstraints.Add(pc);
 	}
-
-	
 }

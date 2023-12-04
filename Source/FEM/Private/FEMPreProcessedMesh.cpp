@@ -4,10 +4,10 @@
 //
 //---------------------------------------------------------------------------------------
 
-#include "PreProcessedMesh.h"
+#include "..\Classes\FEMPreProcessedMesh.h"
 
 
-APreProcessedMeshHelper::APreProcessedMeshHelper(const FObjectInitializer& ObjectInitializer)
+AFEMPreProcessedMeshHelper::AFEMPreProcessedMeshHelper(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SetActorTickEnabled(false);
@@ -15,22 +15,22 @@ APreProcessedMeshHelper::APreProcessedMeshHelper(const FObjectInitializer& Objec
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-bool APreProcessedMeshHelper::IsProcessed(FString name)
+bool AFEMPreProcessedMeshHelper::IsProcessed(FString name)
 {
 	return FEMPreProcessedMeshes.Contains(name);
 }
 
-PreProcessedMesh& APreProcessedMeshHelper::AddPreProcessedMesh(FString name, PreProcessedMesh mesh)
+FEMPreProcessedMesh& AFEMPreProcessedMeshHelper::AddPreProcessedMesh(FString name, FEMPreProcessedMesh mesh)
 {
 	return FEMPreProcessedMeshes.Add(name, mesh);
 }
 
-PreProcessedMesh& APreProcessedMeshHelper::GetPreProcessedMesh(FString name)
+FEMPreProcessedMesh& AFEMPreProcessedMeshHelper::GetPreProcessedMesh(FString name)
 {
 	return FEMPreProcessedMeshes[name];
 }
 
-FArchive& operator<<(FArchive& Ar, PreProcessedMesh& M)
+FArchive& operator<<(FArchive& Ar, FEMPreProcessedMesh& M)
 {
 	for (int i = 0; i < M.Vertices.Num(); ++i)
 	{

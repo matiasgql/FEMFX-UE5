@@ -16,6 +16,7 @@ class AFEMFXScene;
 class UActorComponent;
 struct AMD::FmRigidBody;
 class UFEMFXMeshComponent;
+//class UProceduralMeshComponent;
 
 USTRUCT(BlueprintType)
 struct FFEMMatrix
@@ -82,7 +83,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
 		uint8 Type;
 
-	FAngleConstraintInfo()
+	FAngleConstraintInfo(): ConstraintId(0), ContactId(0), ObjectIdA(0), ObjectIdB(0)
 	{
 		AxisBodySpaceA = FVector(0.0f);
 		AxisBodySpaceB = FVector(0.0f);
@@ -102,8 +103,8 @@ struct FGlueConstraintInfo
 
 public:
 
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int ConstraintId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
+	int ConstraintId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
 		FString ConstraintName;
@@ -141,9 +142,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
 		float kPosCorrection;
 
-	FGlueConstraintInfo()
+	FGlueConstraintInfo(): ConstraintId(0), BufferIdA(0), BufferIdB(0), BufferTetIdA(0), BufferTetIdB(0), LambdaX(0),
+	                       LambdaY(0),
+	                       LambdaZ(0),
+	                       kVelCorrection(0),
+	                       kPosCorrection(0)
 	{
-
 	}
 
 	static FGlueConstraintInfo FromAMDType(const AMD::FmGlueConstraintSetupParams& constraint, const AMD::FmVector3& impulse);
@@ -161,9 +165,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
 		float Bias;
 
-	FPlaneInfo()
+	FPlaneInfo(): Bias(0)
 	{
-
 	}
 };
 
@@ -174,8 +177,8 @@ struct FPlaneConstraintInfo
 
 public:
 
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-		int ConstraintId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
+	int ConstraintId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
 		FString ConstraintName;
@@ -207,9 +210,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "FEM")
 		float kPosCorrection;
 
-	FPlaneConstraintInfo()
+	FPlaneConstraintInfo(): ConstraintId(0), BufferIdA(0), BufferIdB(0), BufferTetIdA(0), BufferTetIdB(0),
+	                        kVelCorrection(0),
+	                        kPosCorrection(0)
 	{
-
 	}
 
 	static FPlaneConstraintInfo FromAMDType(const AMD::FmPlaneConstraintSetupParams& constraint);
@@ -246,7 +250,7 @@ public:
 
 	/* AActor Interface */
 	UFUNCTION(BlueprintCallable, Category = "FEM")
-	virtual void BeginPlay();
+	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	virtual void Destroyed() override;

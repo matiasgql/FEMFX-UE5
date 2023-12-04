@@ -28,7 +28,7 @@ public:
 	static TUniquePtr<FEMFileImportFactory> GetFactory(FString);
 
 public:
-	virtual void ImportFEMFile(const FEMFileImportInputs*);
+	virtual void ImportFEMFile(const FEMFileImportInputs*) {};
 };
 
 class FEMv1_0 : public FEMFileImportFactory

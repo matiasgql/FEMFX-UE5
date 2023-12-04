@@ -7,6 +7,9 @@
 #include "/Engine/Public/Platform.ush"
 
 #include "/Engine/Private/VertexFactoryCommon.ush"
+#include "/Engine/Private/LightmapData.ush"
+#include "/Engine/Private/GpuSkinCommon.ush"
+#include "/Engine/Private/SplineMeshCommon.ush"
 #include "FEMFXMeshVertexFactoryCommon.ush"
 
 #if GPUSKIN_PASS_THROUGH
@@ -187,6 +190,19 @@ struct FVertexFactoryInput
 #endif
 };
 
+
+
+
+struct FPositionAndNormalOnlyVertexFactoryInput
+{
+	float4	Position	: ATTRIBUTE0;
+	float4	Normal		: ATTRIBUTE1;
+	VF_GPUSCENE_DECLARE_INPUT_BLOCK(2)
+	VF_INSTANCED_STEREO_DECLARE_INPUT_BLOCK()
+};
+
+
+
 struct FPositionOnlyVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
@@ -208,20 +224,65 @@ struct FPositionOnlyVertexFactoryInput
     int BaryPosBaseId : ATTRIBUTE17;
 };
 
+
+/** Intermediates that are common to all supported vertex factory input types */
+struct FVertexFactoryIntermediatesCommon
+{
+	/** Cached primitive and instance data */
+	FSceneDataIntermediates SceneData;
+#if USE_INSTANCING || USE_INSTANCE_CULLING
+	FVertexFactoryInstanceInput InstanceInput;
+#endif
+#if USE_SPLINEDEFORM
+	FSplineMeshShaderParams SplineMeshParams;
+#endif
+};
+
+/** 
+ * Caches intermediates that would otherwise have to be computed multiple times.  Avoids relying on the compiler to optimize out redundant operations.
+ */
 struct FVertexFactoryIntermediates
 {
+	FVertexFactoryIntermediatesCommon Common;
+#if VF_USE_PRIMITIVE_SCENE_DATA
+	int PrimitiveLocalInstanceIndex;
+#endif
+
 	half3x3 TangentToLocal;
 	half3x3 TangentToWorld;
 	half TangentToWorldSign;
 
 	half4 Color;
-#if USE_INSTANCING
-	// x = per-instance random, y = per-instance fade out amount, z = hide/show flag, w dither fade cutoff
-	float4 PerInstanceParams;
-#endif	// USE_INSTANCING
+	bool bEvaluateWorldPositionOffset;
 
-    float3 TetDeformedPos;
+#if USE_INSTANCE_CULLING
+	float4 HitProxyId;
+	float IsSelected;
+#endif
+
+	float IsVisible;
+
+#if USE_INSTANCING || USE_INSTANCE_CULLING
+	float4 InstanceLightMapAndShadowMapUVBias;
+	// x = per-instance fade out amount, y = hide/show flag, z dither fade cutoff, w - CustomData index
+	float4 PerInstanceParams;
+#endif
+
+	float3 PreSkinPosition;
+	
+	float3 TetDeformedPos;
 };
+
+
+FSceneDataIntermediates GetSceneDataIntermediates(FVertexFactoryIntermediates Intermediates)
+{
+	return Intermediates.Common.SceneData;
+}
+
+uint VertexFactoryGetViewIndex(FVertexFactoryIntermediates Intermediates)
+{
+	return GetSceneDataIntermediates(Intermediates).ViewIndex;
+}
 
 #if USE_INSTANCING
 float4x4 GetInstanceTransform(FVertexFactoryInput Input)
@@ -610,7 +671,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.TangentToLocal = CalcTangentToLocal(Input);
 	Intermediates.TangentToWorld = CalcTangentToWorld(Input,Intermediates.TangentToLocal);
 
-	Intermediates.TangentToWorldSign = TangentBias(Input.TangentZ.w) * Primitive.LocalToWorldDeterminantSign;
+	Intermediates.TangentToWorldSign = 1; //TangentBias(Input.TangentZ.w) * Primitive.LocalToWorldDeterminantSign;
 
 	// Swizzle vertex color.
 	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE;
@@ -712,6 +773,14 @@ half3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactor
 {
 	return Intermediates.TangentToLocal;
 }
+
+
+// @return translated world position
+float4 VertexFactoryGetWorldNormal(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
+{
+    return CalcWorldPosition(float4(Intermediates.TetDeformedPos, 1.0));
+}
+
 
 // @return translated world position
 float4 VertexFactoryGetWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)

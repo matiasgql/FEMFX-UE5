@@ -77,15 +77,18 @@ void SetColor(inout FVertexFactoryInterpolantsVSToPS Interpolants, float4 InValu
 }
 
 #if NEEDS_LIGHTMAP_COORDINATE
-void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1, out uint LightmapDataIndex)
 {
 	LightmapUV0 = Interpolants.LightMapCoordinate.xy * float2( 1, 0.5 );
 	LightmapUV1 = LightmapUV0 + float2( 0, 0.5 );
+	LightmapDataIndex = 0;
 }
 
-float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 ShadowMapCoordinate, out uint LightmapDataIndex)
 {
-	return Interpolants.LightMapCoordinate.zw;
+	ShadowMapCoordinate = Interpolants.LightMapCoordinate.xy;
+	LightmapDataIndex = 0;
+	//return 0;//Interpolants.LightMapCoordinate = ShadowMapCoordinate;
 }
 
 void SetLightMapCoordinate(inout FVertexFactoryInterpolantsVSToPS Interpolants, float2 InLightMapCoordinate, float2 InShadowMapCoordinate)
@@ -193,7 +196,7 @@ void SetColor(inout FVertexFactoryInterpolantsVSToPS Interpolants, float4 InValu
 	#endif
 }
 
-void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1, out uint LightmapDataIndex)
 {
 	#if USE_INTERPOLATOR_345 
 		LightmapUV0 = Interpolants.PackedInterpolator3.xy;
@@ -201,14 +204,19 @@ void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out f
 	#else
 		LightmapUV0 = LightmapUV1 = 0;
 	#endif
+	LightmapDataIndex = 0;
 }
 
-float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 ShadowMapCoordinate, out uint LightmapDataIndex)
 {
 	#if USE_INTERPOLATOR_345 
-		return Interpolants.PackedInterpolator5.xy;
+		ShadowMapCoordinate = IInterpolants.PackedInterpolator5.xy;
+		LightmapDataIndex = 0;
+		//return Interpolants.PackedInterpolator5.xy;
 	#else
-		return float2(0, 0);
+		ShadowMapCoordinate = float2(0, 0);
+		LightmapDataIndex = 0;
+		//return float2(0, 0);
 	#endif
 }
 

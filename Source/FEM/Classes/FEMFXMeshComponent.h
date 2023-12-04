@@ -14,9 +14,10 @@
 #include "Components/MeshComponent.h"
 #include "PhysicsEngine/ConvexElem.h"
 #include "FEMMeshTypes.h"
-#include "FEMFXRender.h"
+#include "FEMFXLocalVertexFactory.h"
 #include "FEMCommon.h"
 #include "FEMFXTetMeshParameters.h"
+#include "FEMPreProcessedMesh.h"
 #include "FEMResource.h"
 #include "RenderTetAssignment.h"
 #include "TetBlueprintHelpers.h"
@@ -62,6 +63,29 @@ public:
 	TArray<int32> AddedIndexBuffer;
 };
 
+
+/** Class representing a single section of the proc mesh */
+class FFEMFXMeshProxySection
+{
+public:
+	uint16 MaterialIndex;
+	FFEMFXMeshVertexBuffers  VertexBuffers;
+	FFEMFXMeshIndexBuffer   IndexBuffer;
+	FFEMFXMeshVertexFactory VertexFactory;
+
+	// Data split this way to minimize CPU updates on fracture
+	FStructuredBufferAndSRV<int32> VertexBarycentricPosOffsets;                         // These ids can be updated to change tet assignments after fracture
+	FStructuredBufferAndSRV<FFEMFXMeshBarycentricPos> VertexBarycentricPositions;   // Buffer can include pre and post fracture barycentric data
+
+	bool bSectionVisible;
+
+	FFEMFXMeshProxySection(ERHIFeatureLevel::Type InFeatureLevel)
+		: MaterialIndex(0)
+		, VertexFactory(InFeatureLevel, "FEMFXVertexFactory")
+		, bSectionVisible(true)
+	{}
+};
+
 /** Procedural mesh scene proxy */
 class FFEMFXMeshSceneProxy : public FPrimitiveSceneProxy
 {
@@ -74,9 +98,8 @@ public:
 	virtual bool CanBeOccluded() const override;
 
 	virtual uint32 GetMemoryFootprint(void) const override;
-	uint32 GetAllocatedSize(void) const;
 
-	virtual SIZE_T GetTypeHash() const override = 0;
+	virtual SIZE_T GetTypeHash() const override;
 	
 	void UpdateRenderData(FRHICommandListBase& RHICmdList, 
 	                      const TArray<FVector3f>& NewVertexPositions,
@@ -186,9 +209,9 @@ class FEM_API UFEMFXMeshComponent : public UMeshComponent, public IInterface_Col
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
-	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override {}
 
-	AMD::FmTetMeshBuffer* GetTetMeshBuffer();
+	AMD::FmTetMeshBuffer* GetTetMeshBuffer() const;
 
 	UFUNCTION(BlueprintCallable, Category ="FEM")
 	void CreateFEMMeshFromTetMesh();
@@ -220,11 +243,11 @@ public:
 	/** Begin UPrimitiveComponent Interface */
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
-	//virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
+	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	virtual void SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material) override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 
-	//virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FFEMFXMeshSceneProxy* CreateSceneProxy() override;
     //~ End UPrimitiveComponent Interface
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
@@ -232,7 +255,7 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Components|FEMFXMesh", meta = (DeprecatedFunction, DeprecationMessage = "This function is deprecated for Blueprints because it uses the unsupported 'Color' type. Use new 'Update Mesh Section' function which uses LinearColor instead.", DisplayName = "Update Mesh Section FColor", AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
         void UpdateMeshSectionVertexBaryPosIds(int32 SectionIndex, const TArray<int32>& VertexBaryPosIds);
-
+ 
     UFUNCTION(BlueprintCallable, Category = "Components|FEMFXMesh", meta = (DeprecatedFunction, DeprecationMessage = "This function is deprecated for Blueprints because it uses the unsupported 'Color' type. Use new 'Update Mesh Section' function which uses LinearColor instead.", DisplayName = "Update Mesh Section FColor", AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
         void UpdateMeshSectionVertexBaryPositions(int32 SectionIndex, const TArray<FFEMFXMeshBarycentricPos>& VertexBaryPositions);
  
@@ -305,7 +328,7 @@ private:
     /** Update LocalBounds member from the local box of each section */
     void UpdateLocalBounds();
     /** Mark collision data as dirty, and re-create on instance if necessary */
-    void UpdateCollision();
+	static void UpdateCollision();
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEM")
@@ -336,7 +359,7 @@ public:
 	AMD::FmBvh* GetBvHierarchy() { return BvHierarchy; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEM")
-	APreProcessedMeshHelper* MeshHelper;
+	AFEMPreProcessedMeshHelper* MeshHelper;
 
 	UFUNCTION(BlueprintCallable, Category = "FEM")
 	TArray<FTetQueryData> ApplyExplosionForce(const FVector& origin, float shokwavePressure0, float shokwaveArea0, float speed, float timestep, float timeSinceDetonation);

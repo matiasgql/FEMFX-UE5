@@ -504,7 +504,7 @@ void AFEMFXScene::UpdateRenderingDataFromFracture()
 			{
 				continue;
 			}
-			if (!m_ComponentsAllocated[i]->IsPendingKill())
+			if (IsValid(m_ComponentsAllocated[i]))
 			{
 				if (!IsValid(m_ComponentsAllocated[i]->FEMMesh))
 					continue;
@@ -529,7 +529,7 @@ void AFEMFXScene::UpdateSimData()
 			{
 				continue;
 			}
-			if (!m_ComponentsAllocated[i]->IsPendingKill())
+			if (IsValid(m_ComponentsAllocated[i]))
 			{
 
 				AMD::FmTetMeshBuffer* TetMeshBuffer = m_ComponentsAllocated[i]->GetTetMeshBuffer();// SimResource->TetMeshBuffer;

@@ -13,10 +13,6 @@
 
 #include "FEMMeshTypes.generated.h"
 
-
-
-
-
 // Render indices for the interior faces that will be exposed on fracture of each of the four tet faces
 USTRUCT(BlueprintType)
 struct FFEMFXTetFractureNewRenderFaces
@@ -36,43 +32,45 @@ private:
 
 public:
 
-	TArray<int32> GetIndices(int idx)
+	TArray<int32> GetIndices(int idx) const
 	{
 		TArray<int32> OutIndices;
+		// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
 		switch (idx)
 		{
-		case 0:
-			OutIndices = Indices0;
-			break;
-		case 1:
-			OutIndices = Indices1;
-			break;
-		case 2:
-			OutIndices = Indices2;
-			break;
-		case 3:
-			OutIndices = Indices3;
-			break;
+			case 0:
+				OutIndices = Indices0;
+				break;
+			case 1:
+				OutIndices = Indices1;
+				break;
+			case 2:
+				OutIndices = Indices2;
+				break;
+			case 3:
+				OutIndices = Indices3;
+				break;
 		}
 		return OutIndices;
 	}
 
 	void GetIndicesRef(int idx, TArray<int32>*& OutIndices)
 	{ 
+		// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
 		switch (idx)
 		{
-		case 0:
-			OutIndices = &Indices0;
-			break;
-		case 1:
-			OutIndices = &Indices1;
-			break;
-		case 2:
-			OutIndices = &Indices2;
-			break;
-		case 3:
-			OutIndices = &Indices3;
-			break;
+			case 0:
+				OutIndices = &Indices0;
+				break;
+			case 1:
+				OutIndices = &Indices1;
+				break;
+			case 2:
+				OutIndices = &Indices2;
+				break;
+			case 3:
+				OutIndices = &Indices3;
+				break;
 		}
 	}
 
@@ -176,6 +174,18 @@ struct FFEMFXMeshVertex
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
 	FVector2f UV0;
 
+	/** Vertex texture co-ordinate */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
+	FVector2f UV1;
+
+	/** Vertex texture co-ordinate */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
+	FVector2f UV2;
+
+	/** Vertex texture co-ordinate */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
+	FVector2f UV3;
+
 	/** ShardId */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
 		int ShardId; // TODO: rename to BaryPosOffsetId and re-import
@@ -255,10 +265,6 @@ struct FFEMFXMeshSection
 	UPROPERTY()
 	TArray<int32> IndexBuffer;
 
-	/** Maximum number of tri indices, used for padding index buffer */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
-	int32 MaxTriIndices;
-
 	/** Local bounding box of section */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEM")
 	FBox SectionLocalBox;
@@ -272,11 +278,10 @@ struct FFEMFXMeshSection
 	bool bSectionVisible;
 
     FFEMFXMeshSection()
-		: SectionLocalBox(ForceInit)
-		, MaxTriIndices(0)
+		: MaterialIndex(0)
+		, SectionLocalBox(ForceInit)
 		, bEnableCollision(false)
 		, bSectionVisible(true)
-		, MaterialIndex(0)
 	{}
 
 	/** Reset this section, clear all mesh info. */
@@ -286,7 +291,6 @@ struct FFEMFXMeshSection
 		BarycentricPositions.Empty();
 		VertexBuffer.Empty();
 		IndexBuffer.Empty();
-		MaxTriIndices = 0;
 		SectionLocalBox.Init();
 		bEnableCollision = false;
 		bSectionVisible = true;
@@ -310,7 +314,6 @@ struct RenderMeshVertex
 
 struct FFEMFXMeshRenderVertex
 {
-	FFEMFXMeshRenderVertex() {}
 	FFEMFXMeshRenderVertex(const FVector3f& InPosition) :
 		Position(InPosition),
 		TextureCoordinate(FVector2f::ZeroVector),
@@ -321,7 +324,7 @@ struct FFEMFXMeshRenderVertex
         BaryPosBaseId(0)
 	{
 		// basis determinant default to +1.0
-		TangentZ.Vector.W = 255;
+		TangentZ.Vector.W = static_cast<int8>(255);
 	}
 
 	FFEMFXMeshRenderVertex(const FVector3f& InPosition, const FVector3f& InTangentX, const FVector3f& InTangentZ, const FVector2f& InTexCoord, const FColor& InColor, int InShardId, int InBaryPosBaseId) :
@@ -334,7 +337,7 @@ struct FFEMFXMeshRenderVertex
         BaryPosBaseId(InBaryPosBaseId)
 	{
 		// basis determinant default to +1.0
-		TangentZ.Vector.W = 255;
+		TangentZ.Vector.W = static_cast<int8>(255);
 	}
 
 	void SetTangents(const FVector& InTangentX, const FVector& InTangentY, const FVector& InTangentZ)
@@ -388,7 +391,40 @@ class FFEMFXMeshVertexBuffer : public FVertexBuffer
 public:
 	TArray<FFEMFXMeshRenderVertex> Vertices;
 
-	virtual void InitRHI(FRHICommandListBase& RHICmdList) override
+	FFEMFXMeshVertexBuffer():
+		TangentsData(nullptr),
+		TexcoordData(nullptr),
+		TangentsDataPtr(nullptr),
+		TexcoordDataPtr(nullptr),
+		TangentsStride(0),
+		TexcoordStride(0),
+		NumTexCoords(0),
+		NumVertices(0),
+		bUseFullPrecisionUVs(false),
+		bUseHighPrecisionTangentBasis(false)
+	{
+	}
+	
+	~FFEMFXMeshVertexBuffer()
+	{
+		CleanUp();
+	};
+
+	void CleanUp()
+	{
+		if (TangentsData)
+		{
+			delete TangentsData;
+			TangentsData = nullptr;
+		}
+		if (TexcoordData)
+		{
+			delete TexcoordData;
+			TexcoordData = nullptr;
+		}
+	};
+	
+	virtual void InitRHI(FRHICommandListBase& RHICmdList) //override
 	{
 		const uint32 SizeInBytes = Vertices.Num() * sizeof(FFEMFXMeshRenderVertex);
 
@@ -397,40 +433,245 @@ public:
 		VertexBufferRHI = RHICmdList.CreateVertexBuffer(SizeInBytes, BUF_Static, CreateInfo);
 	}
 
+	FORCEINLINE_DEBUGGABLE void SetVertexTangents(uint32 VertexIndex, FVector3f X, FVector3f Y, FVector3f Z)
+	{
+		checkSlow(VertexIndex < GetNumVertices());
+
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			typedef TStaticMeshVertexTangentDatum<TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::TangentTypeT> TangentType;
+			TangentType* ElementData = reinterpret_cast<TangentType*>(TangentsDataPtr);
+			check((void*)((&ElementData[VertexIndex]) + 1) <= (void*)(TangentsDataPtr + TangentsData->GetResourceSize()));
+			check((void*)((&ElementData[VertexIndex]) + 0) >= (void*)(TangentsDataPtr));
+			ElementData[VertexIndex].SetTangents(X, Y, Z);
+		}
+		else
+		{
+			typedef TStaticMeshVertexTangentDatum<TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::TangentTypeT> TangentType;
+			TangentType* ElementData = reinterpret_cast<TangentType*>(TangentsDataPtr);
+			check((void*)((&ElementData[VertexIndex]) + 1) <= (void*)(TangentsDataPtr + TangentsData->GetResourceSize()));
+			check((void*)((&ElementData[VertexIndex]) + 0) >= (void*)(TangentsDataPtr));
+			ElementData[VertexIndex].SetTangents(X, Y, Z);
+		}
+	}
+	
+	/**
+	* Set the vertex UV values at the given index in the vertex buffer
+	*
+	* @param VertexIndex - index into the vertex buffer
+	* @param UVIndex - [0,MAX_STATIC_TEXCOORDS] value to index into UVs array
+	* @param Vec2D - UV values to set
+	* @param bUseBackwardsCompatibleF16TruncUVs - whether backwards compatible Truncate mode is used for F32 to F16 conversion
+	*/
+	FORCEINLINE_DEBUGGABLE void SetVertexUV(uint32 VertexIndex, uint32 UVIndex, const FVector2f& Vec2D, bool bUseBackwardsCompatibleF16TruncUVs = false)
+	{
+		checkSlow(VertexIndex < GetNumVertices());
+		checkSlow(UVIndex < GetNumTexCoords());
+
+		if (GetUseFullPrecisionUVs())
+		{
+			size_t UvStride = sizeof(FVector2f) * GetNumTexCoords();
+
+			FVector2f* ElementData = reinterpret_cast<FVector2f*>(TexcoordDataPtr + (VertexIndex * UvStride));
+			check((void*)((&ElementData[UVIndex]) + 1) <= (void*)(TexcoordDataPtr + TexcoordData->GetResourceSize()));
+			check((void*)((&ElementData[UVIndex]) + 0) >= (void*)(TexcoordDataPtr));
+			ElementData[UVIndex] = Vec2D;
+		}
+		else
+		{
+			size_t UvStride = sizeof(FVector2DHalf) * GetNumTexCoords();
+
+			FVector2DHalf* ElementData = reinterpret_cast<FVector2DHalf*>(TexcoordDataPtr + (VertexIndex * UvStride));
+			check((void*)((&ElementData[UVIndex]) + 1) <= (void*)(TexcoordDataPtr + TexcoordData->GetResourceSize()));
+			check((void*)((&ElementData[UVIndex]) + 0) >= (void*)(TexcoordDataPtr));
+		
+			if ( bUseBackwardsCompatibleF16TruncUVs )
+			{
+				ElementData[UVIndex].SetTruncate( Vec2D );
+			}
+			else
+			{
+				ElementData[UVIndex] = Vec2D;
+			}
+		}
+	}
+
+	template<EStaticMeshVertexUVType UVTypeT>
+	FORCEINLINE_DEBUGGABLE FVector2f GetVertexUV_Typed(uint32 VertexIndex, uint32 UVIndex)const
+	{
+		typedef TStaticMeshVertexUVsDatum<typename TStaticMeshVertexUVsTypeSelector<UVTypeT>::UVsTypeT> UVType;
+		size_t UvStride = sizeof(UVType) * GetNumTexCoords();
+
+		UVType* ElementData = reinterpret_cast<UVType*>(TexcoordDataPtr + (VertexIndex * UvStride));
+		check((void*)((&ElementData[UVIndex]) + 1) <= (void*)(TexcoordDataPtr + TexcoordData->GetResourceSize()));
+		check((void*)((&ElementData[UVIndex]) + 0) >= (void*)(TexcoordDataPtr));
+		return ElementData[UVIndex].GetUV();
+	}
+
+	/**
+	* Set the vertex UV values at the given index in the vertex buffer
+	*
+	* @param VertexIndex - index into the vertex buffer
+	* @param UVIndex - [0,MAX_STATIC_TEXCOORDS] value to index into UVs array
+	* @param 2D UV values
+	*/
+	FORCEINLINE_DEBUGGABLE FVector2f GetVertexUV(uint32 VertexIndex, uint32 UVIndex) const
+	{
+		checkSlow(VertexIndex < GetNumVertices());
+		checkSlow(UVIndex < GetNumTexCoords());
+
+		if (GetUseFullPrecisionUVs())
+		{
+			return GetVertexUV_Typed<EStaticMeshVertexUVType::HighPrecision>(VertexIndex, UVIndex);
+		}
+		else
+		{
+			return GetVertexUV_Typed<EStaticMeshVertexUVType::Default>(VertexIndex, UVIndex);
+		}
+	}
+	
+	int GetTangentSize() const
+	{
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			typedef TStaticMeshVertexTangentDatum<TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::TangentTypeT> TangentType;
+			TangentsStride = sizeof(TangentType);
+			return TangentsStride * GetNumVertices();
+		}
+		else
+		{
+			typedef TStaticMeshVertexTangentDatum<TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::TangentTypeT> TangentType;
+			TangentsStride = sizeof(TangentType);
+			return TangentsStride * GetNumVertices();
+		}
+	}
+
+	int GetTexCoordSize() const
+	{
+		if (GetUseFullPrecisionUVs())
+		{
+			typedef TStaticMeshVertexUVsDatum<TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT> UVType;
+			TexcoordStride = sizeof(UVType);
+			return TexcoordStride * GetNumTexCoords() * GetNumVertices();
+		}
+		else
+		{
+			typedef TStaticMeshVertexUVsDatum<TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT> UVType;
+			TexcoordStride = sizeof(UVType);
+			return TexcoordStride * GetNumTexCoords() * GetNumVertices();
+		}
+	}
+	
+	FORCEINLINE_DEBUGGABLE void* GetTangentData() { return TangentsDataPtr; }
+	FORCEINLINE_DEBUGGABLE const void* GetTangentData() const { return TangentsDataPtr; }
+
+	FORCEINLINE_DEBUGGABLE void* GetTexCoordData() { return TexcoordDataPtr; }
+	FORCEINLINE_DEBUGGABLE const void* GetTexCoordData() const { return TexcoordDataPtr; }
+	
+	FORCEINLINE_DEBUGGABLE uint32 GetNumVertices() const
+	{
+		return NumVertices;
+	}
+
+	FORCEINLINE_DEBUGGABLE uint32 GetNumTexCoords() const
+	{
+		return NumTexCoords;
+	}
+
+	FORCEINLINE_DEBUGGABLE bool GetUseFullPrecisionUVs() const
+	{
+		return bUseFullPrecisionUVs;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetUseFullPrecisionUVs(bool UseFull)
+	{
+		bUseFullPrecisionUVs = UseFull;
+	}
+
+	FORCEINLINE_DEBUGGABLE bool GetUseHighPrecisionTangentBasis() const
+	{
+		return bUseHighPrecisionTangentBasis;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetUseHighPrecisionTangentBasis(bool bUseHighPrecision)
+	{
+		bUseHighPrecisionTangentBasis = bUseHighPrecision;
+	}
+
+	FORCEINLINE_DEBUGGABLE uint32 GetResourceSize() const
+	{
+		return (TangentsStride + (TexcoordStride * GetNumTexCoords())) * NumVertices;
+	}
+	
+	class FTangentsVertexBuffer : public FVertexBuffer
+	{
+		virtual FString GetFriendlyName() const override { return TEXT("FTangentsVertexBuffer"); }
+	} TangentsVertexBuffer;
+
+	class FTexcoordVertexBuffer : public FVertexBuffer
+	{
+		virtual FString GetFriendlyName() const override { return TEXT("FTexcoordVertexBuffer"); }
+	} TexCoordVertexBuffer;
+
+private:
+
+	/** The vertex data storage type */
+	FStaticMeshVertexDataInterface* TangentsData;
+	FShaderResourceViewRHIRef TangentsSRV;
+
+	FStaticMeshVertexDataInterface* TexcoordData;
+	FShaderResourceViewRHIRef TextureCoordinatesSRV;
+
+	/** The cached vertex data pointer. */
+	uint8* TangentsDataPtr;
+	uint8* TexcoordDataPtr;
+
+	/** The cached Tangent stride. */
+	mutable uint32 TangentsStride; // Mutable to allow updating through const getter
+
+	/** The cached Texcoord stride. */
+	mutable uint32 TexcoordStride; // Mutable to allow updating through const getter
+
+	/** The number of texcoords/vertex in the buffer. */
+	uint32 NumTexCoords;
+
+	/** The cached number of vertices. */
+	uint32 NumVertices;
+
+	/** Corresponds to UStaticMesh::UseFullPrecisionUVs. if true then 32 bit UVs are used */
+	bool bUseFullPrecisionUVs;
+
+	/** If true then RGB10A2 is used to store tangent else RGBA8 */
+	bool bUseHighPrecisionTangentBasis;
+
+	bool NeedsCPUAccess = true;
 };
 
 class FFEMFXMeshIndexBuffer : public FIndexBuffer
 {
 public:
 	TArray<int32> Indices;
-	int32 MaxIndices;
 
-	FFEMFXMeshIndexBuffer()
-		: MaxIndices(0)
-	{}
-
-	virtual void InitRHI(FRHICommandListBase& RHICmdList) override
+	virtual void InitRHI(FRHICommandListBase& RHICmdList) //override
 	{
-		FRHIResourceCreateInfo CreateInfo = FRHIResourceCreateInfo(UTF8_TO_TCHAR("FEMFXMeshIndexBuffer"));
-		void* Buffer = nullptr;
+		FRHIResourceCreateInfo CreateInfo(TEXT("FDynamicMeshIndexBuffer32"));
+		IndexBufferRHI = RHICmdList.CreateIndexBuffer(sizeof(uint32), Indices.Num() * sizeof(uint32), BUF_Static, CreateInfo);
 
-		if (MaxIndices <= Indices.Num())
-		{
-			IndexBufferRHI = RHICmdList.CreateBuffer(sizeof(int32), BUF_Static, Indices.Num() * sizeof(int32), ERHIAccess::None, CreateInfo);
-			RHICmdList.LockBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
-			//IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(int32), MaxIndices * sizeof(int32), BUF_Static, CreateInfo, Buffer);
-		}
-		else
-		{
-			IndexBufferRHI = RHICmdList.CreateBuffer(sizeof(int32), BUF_Dynamic, Indices.Num() * sizeof(int32), ERHIAccess::None, CreateInfo);
-			RHICmdList.LockBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
-			//IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(int32), MaxIndices * sizeof(int32), BUF_Dynamic, CreateInfo, Buffer);
-		}
-
-		// Write the indices to the index buffer.		
-		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
+		// Copy the index data into the index buffer.
+		void* Buffer = RHICmdList.LockBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(uint32), RLM_WriteOnly);
+		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint32));
 		RHICmdList.UnlockBuffer(IndexBufferRHI);
 	}
+};
+
+struct FFEMFXMeshVertexBuffers
+{
+	/** The buffer containing vertex data. */
+	FFEMFXMeshVertexBuffer StaticMeshVertexBuffer;
+	/** The buffer containing the position vertex data. */
+	FPositionVertexBuffer PositionVertexBuffer;
+	/** The buffer containing the vertex color data. */
+	FColorVertexBuffer ColorVertexBuffer;
 };
 
 struct FFEMTetMeshRenderData

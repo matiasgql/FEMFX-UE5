@@ -10,10 +10,7 @@
 #include "RawIndexBuffer.h"
 #include "Engine/StaticMesh.h"
 #include "FEMMeshTypes.h"
-#include "WoodPanelCommon.h"
 #include "ProceduralMeshHelper.h"
-#include "FEMConnectivity.h"
-#include "AMD_FEMFX.h"
 #include "IFEM.h"
 
 #include <algorithm>
@@ -103,7 +100,7 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSectionFromFEMFile(AMD::FmTetMeshBuffer* 
 	for (int i = 0; i < positionBuffer.Num() / 3; i++)
 	{
 		FVector3f inPos(positionBuffer[i * 3], positionBuffer[(i * 3) + 1], positionBuffer[(i * 3) + 2]);
-		FVector3f outPos(-inPos.Y, -inPos.Z, inPos.X);
+		//FVector3f outPos(-inPos.Y, -inPos.Z, inPos.X);
 		Vertices.Add(inPos);
 	}
 
@@ -111,7 +108,6 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSectionFromFEMFile(AMD::FmTetMeshBuffer* 
     AMD::FmVector3* vertRestPositions = (AMD::FmVector3*)ComponentResources.restPositions.GetData();
     AMD::FmTetVertIds* tetVertIds = (AMD::FmTetVertIds*)ComponentResources.tetVertIds.GetData();
 
-#if 1
     // .fem non-fracture regions may not be separate connected components, which is assumed by preprocessing code.
     // Instead build non-fracture region lists based on information from the tet mesh buffer
     AMD::uint NumNonFractureRegions = AMD::FmGetMaxTetMeshes(*tetMeshBuffer);
@@ -124,7 +120,7 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSectionFromFEMFile(AMD::FmTetMeshBuffer* 
         AMD::uint FractureGroupId;
         uint16_t TetFlags;
 
-        AMD::FmGetTetMeshBufferTetInfo(&FractureGroupId, &TetFlags, *tetMeshBuffer, i);
+        FmGetTetMeshBufferTetInfo(&FractureGroupId, &TetFlags, *tetMeshBuffer, i);
 
         RegionTetIds[FractureGroupId].push_back(i);
         RegionFractureFaces[FractureGroupId].push_back(TetFlags & (FM_TET_FLAG_FACE0_FRACTURE_DISABLED | FM_TET_FLAG_FACE1_FRACTURE_DISABLED | FM_TET_FLAG_FACE2_FRACTURE_DISABLED | FM_TET_FLAG_FACE3_FRACTURE_DISABLED));
@@ -142,35 +138,6 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSectionFromFEMFile(AMD::FmTetMeshBuffer* 
 
     delete[] RegionTetIds;
     delete[] RegionFractureFaces;
-#else
-    AMD::NonFractureRegions Regions(ComponentResources.NumTets);
-
-    int32 NumMats = ComponentResources.Materials.Num();
-    for (int32 MatIdx = 0; MatIdx < NumMats; MatIdx++)
-    {
-        TArray<uint32>& CompTetIds = ComponentResources.Materials[MatIdx].TetIds;
-        TArray<uint32>& CompNoFractureFaces = ComponentResources.Materials[MatIdx].NoFractureFaces;
-
-        std::vector<AMD::uint> TetIds;
-        for (int32 i = 0; i < CompTetIds.Num(); i++)
-        {
-            TetIds.push_back(CompTetIds[i]);
-        }
-        
-        std::vector<AMD::uint> NoFractureFaces;
-        for (int32 i = 0; i < CompNoFractureFaces.Num(); i++)
-        {
-            NoFractureFaces.push_back(CompNoFractureFaces[i]);
-        }
-
-        Regions.AddRegion(
-            vertRestPositions,
-            tetVertIds,
-            TetIds, NoFractureFaces);
-    }
-
-    Regions.AddRemainingRegions((AMD::FmVector3*)ComponentResources.restPositions.GetData(), (AMD::FmTetVertIds*)ComponentResources.tetVertIds.GetData());
-#endif
 
 	//// Barycentrics /////
 
@@ -639,7 +606,7 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSection(UStaticMesh* StaticMesh, AMD::FmT
 			BarycentricPosOffsets.Add(0);
 			BarycentricPosBaseIds.AddDefaulted(Vertices.Num());
 
-			TArray<int>& BarycentricsPosIds = section.BarycentricsPosIds;
+			//TArray<int>& BarycentricsPosIds = section.BarycentricsPosIds;
 			for (int i = 0; i < idx.Num(); i++)
 			{
 				int32 fbxIndex = idx[i];
@@ -744,13 +711,13 @@ FBoxSphereBounds UFEMMesh::UpdateBounds()
 
 AMD::FmTetMeshBuffer* UFEMMesh::LoadTempBuffer(AMD::FmVector3* RestPositions, int NumTets, int NumVerts, AMD::FmTetVertIds* TetVertIds, bool FractureEnabled)
 {
-	int MaxVerts = MAX_VERTS_PER_MESH_BUFFER;
-	int MaxExteriorFaces = NumTets * 4;
-
-	if (!FractureEnabled)
-	{
-		MaxVerts = NumVerts;
-	}
+	// int MaxVerts = MAX_VERTS_PER_MESH_BUFFER;
+	// int MaxExteriorFaces = NumTets * 4;
+	//
+	// if (!FractureEnabled)
+	// {
+	// 	MaxVerts = NumVerts;
+	// }
 
 	AMD::FmArray<unsigned int>* vertIncidentTets = new AMD::FmArray<unsigned int>[GetComponentResource().NumVerts];
 	int currentNum = 0;
@@ -792,7 +759,7 @@ AMD::FmTetMeshBuffer* UFEMMesh::LoadTempBuffer(AMD::FmVector3* RestPositions, in
     AMD::FmTetMeshBufferSetupParams tetMeshParams;
     tetMeshParams.numVerts = bounds.numVerts;
     tetMeshParams.maxVerts = bounds.maxVerts;
-    tetMeshParams.numTets = bounds.numTets;
+    //tetMeshParams.numTets = bounds.numTets;
     tetMeshParams.maxVertAdjacentVerts = bounds.maxVertAdjacentVerts;
     tetMeshParams.numTets = bounds.numTets;
     tetMeshParams.numVertIncidentTets = bounds.numVertIncidentTets;
@@ -892,9 +859,9 @@ FFEMFXMeshSection* UFEMMesh::CreateRenderMeshFromTetMesh(AMD::FmTetMeshBuffer* t
 		for (AMD::uint tetIdx = 0; tetIdx < numTets; tetIdx++)
 		{
 
-			int vertId = 0;
+			//int vertId = 0;
 
-			AMD::FmVector3 pos0, pos1, pos2, pos3, normal;
+			AMD::FmVector3 pos0, pos1, pos2, /**pos3,*/ normal;
 
             AMD::FmTetVertIds tetVerts = AMD::FmGetTetVertIds(tetMesh, tetIdx);
 
@@ -1067,10 +1034,8 @@ FFEMFXMeshSection* UFEMMesh::CreateMeshSection(int32 SectionIndex, const TArray<
 		NewSection.IndexBuffer[IndexIdx] = FMath::Min(IndexIdx, NumVerts - 1);
 	}
 
-	NewSection.MaxTriIndices = FMath::Max(MaxTriIndices, NumTriIndices);
-
 	NewSection.bEnableCollision = bCreateCollision;
-
+	
 	return &NewSection;
 
 	UpdateLocalBounds(); // Update overall bounds
@@ -1098,7 +1063,7 @@ UFEMMeshResource::UFEMMeshResource(const FObjectInitializer& ObjectInitializer)
 }
 
 UFEMTetMesh::UFEMTetMesh(const FObjectInitializer& ObjectInitializer)
-	:Super(ObjectInitializer)
+	: Super(ObjectInitializer), FEMMeshInteriorMeshSection(0)
 {
 }
 
@@ -1155,7 +1120,7 @@ FBox UFEMTetMesh::UpdateTetMesh(AMD::FmTetMeshBuffer* tetMeshBuffer)
 
 		AMD::uint SubMeshVertOffset = TetMeshVertOffsets[SubMeshIdx];
 
-        AMD::FmTetVertIds tetVertIds = AMD::FmGetTetVertIds(*TetMesh, TetId);
+        AMD::FmTetVertIds tetVertIds = FmGetTetVertIds(*TetMesh, TetId);
 
 		FFEMFXMeshTetVertexIds VertexIds;
 		VertexIds.Id0 = tetVertIds.ids[0];
